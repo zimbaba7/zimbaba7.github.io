@@ -1,0 +1,321 @@
+<?php
+    $CampaignLink='http://shibubabyjohn.info/click.php?key=p8pmvzed1mbzfmr06s6v';
+    $ApiKey='&api_key=1000001ac33a3db05e59ca91fb5c2db101f7354';
+    $getClick=new getClick($CampaignLink, $ApiKey);
+
+    class getClick{
+        /*
+        * Binom ClickAPI
+        * @version 1.3
+        * @date 09.12.2019
+        **/
+        function __construct($CampaignLink, $ApiKey){
+            if(strpos($CampaignLink, '?')!==false){
+                $this->ClickURL=$CampaignLink.'&lp_type=click_info&api_key='.$ApiKey;
+            }else{
+                $this->ClickURL=$CampaignLink.'?lp_type=click_info&api_key='.$ApiKey;
+            }
+            if(isset($_GET)){
+                foreach($_GET AS $key=>$val){
+                    $this->ClickURL=$this->ClickURL.'&'.$key.'='.urlencode($val);
+                }
+            }
+            $this->DataClick=$this->getClickData($this->ClickURL);
+        }
+        function setLPClick(){
+            $URL=$this->getLPClickURL();
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $URL);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            $result = curl_exec( $ch );
+            curl_close( $ch );
+            return true;
+        }
+        function getLPClickURL($emulation=1){
+            if(isset($this->ClickURL) && isset($this->DataClick['uclick'])){
+                $tempArr=explode('?',$this->ClickURL);
+                if($emulation==1){
+                    $LPClickURL=$tempArr[0].'?lp=1&emulation_mode=1&uclick='.$this->DataClick['uclick'];
+                }else{
+                    $LPClickURL=$tempArr[0].'?lp=1&uclick='.$this->DataClick['uclick'];
+                }
+                return $LPClickURL;
+            }
+            return false;
+        }
+        function getLanding(){
+            if(isset($this->DataClick['landing']['type'])){
+                if($this->DataClick['landing']['id']==0 || $this->DataClick['landing']['name']=='DIRECT'){
+                    echo 'Direct';
+                }else{
+                    if($this->DataClick['landing']['type']==2 && isset($this->DataClick['landing']['html'])){
+                        echo $this->DataClick['landing']['html'];
+                    }else{
+                        echo $this->loadLanding();
+                    }
+                }
+            }
+        }
+        function includeLanding(){
+            ob_start();
+            include($this->getLandingUrl());
+            return $this->replaceLandingLink(ob_get_clean());
+        }
+        function loadLanding(){
+            $postdata = http_build_query($this->DataClick);
+            $opts = array('http' =>array(
+                'method'  => 'POST','header'  => 'Content-type: application/x-www-form-urlencoded','content' => $postdata
+            ));
+            $context  = stream_context_create($opts);
+            return $this->replaceLandingLink(file_get_contents(
+                $this->getLandingUrl(), false, $context
+            ));
+        }
+        function replaceLandingLink($html){
+            if(isset($this->DataClick['uclick'])){
+                $html=str_replace('?lp=1','?lp=1&uclick='.$this->DataClick['uclick'],$html);
+            }
+            return $html;
+        }
+        function getOfferUrl(){
+            $OfferUrl='Unknown';
+            if(isset($this->DataClick['offer']['url'])){
+                $OfferUrl=$this->DataClick['offer']['url'];
+            }
+            return $OfferUrl;
+        }
+        function getLandingUrl(){
+            $LandingUrl='Unknown';
+            if(isset($this->DataClick['landing']['url'])){
+                if($this->DataClick['landing']['id']=='0'){
+                    $LandingUrl='Direct';
+                }else{
+                    $LandingUrl=$this->DataClick['landing']['url'];
+                }
+            }
+            return $LandingUrl;
+        }
+        function getClickData($ClickURL){
+            $ClickOptions=$this->getClickOptions();
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $ClickURL);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            if(!empty($ClickOptions)){
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $ClickOptions);
+            }
+            $result = curl_exec( $ch );
+            curl_close( $ch );
+            if(!$result=json_decode($result,true)){
+                $result['status']='error';
+                $result['error']='Incorrect Campaign link';
+            }
+            return $result;
+        }
+        function getClickOptions(){
+            $posts=array();
+            if(isset($_POST) && !empty($_POST)){
+                foreach($_POST AS $key=>$val){
+                    $posts[]=$key.'='.$val;
+                }
+            }
+            $Headers=array();
+            foreach($_SERVER AS $key=>$val){
+                if(strtolower(substr($key, 0, 5)) === 'http_' || strtolower($key)=='remote_addr') {
+                    $Headers[$key]=$val;
+                }
+            }
+            if(!isset($Headers['HTTP_CONTENT_TYPE'])){
+                $Headers['HTTP_CONTENT_TYPE']='text/html; charset=utf-8';
+            }
+            if(!isset($Headers['HTTP_X_FORWARDED_FOR']) && isset($Headers['REMOTE_ADDR'])){
+                $Headers['HTTP_X_FORWARDED_FOR']=$Headers['REMOTE_ADDR'];
+            }
+            $posts[]='ClickDataHeaders='.urlencode(json_encode($Headers));
+            return implode('&',$posts);
+        }
+    }
+?>
+ <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Хостинг-провайдер TimeWeb.ru | Мы рады приветствовать Вас среди наших клиентов!</title><style type="text/css">p {    font-family: tahoma,verdana;    font-size: 12px;                                                                                                                    color: #222329;}p.header {       font-family: tahoma,verdana;font-size: 18px;    color: #3b3f4c;}p.sign {        font-family: tahoma,verdana;                                                                                                font-size: 11px; color: #3b3f4c;}li {    font-family: tahoma,verdana;
+
+        font-size: 12px;
+
+        color: #222329;
+
+        font-weight: bold;
+
+        padding-left: 10px;
+
+        padding-bottom: 4px;
+
+    }
+
+    a {
+
+        font-family: tahoma,verdana;
+
+        font-size: 12px;
+
+        color: #0077be;
+
+        font-weight: bold;
+
+    }
+
+    ul {
+
+        padding-left: 25px;
+
+        list-style-image: url('http://timeweb.com/ru/img/bullet.gif')
+
+    }
+
+    p.line {
+
+        border-top: 1px solid #dbdbdb;
+
+    }
+
+    </style>
+
+    </head>
+
+    <body>
+
+    <center>
+
+    <table border="0" style="width:800px;background-image:url(http://timeweb.com/ru/img/gradient.jpg);background-repeat:repeat-x;background-align:top;">
+
+    <tr>
+
+        <td style="height:148px;width:240px;" valign="bottom" align="right"><img src="http://timeweb.com/ru/img/logo.jpg" alt=''></td>
+
+        <td>&nbsp;</td>
+
+    </tr>
+
+    </table>
+
+    <table border="0" style="width:800px;">
+
+    <tr>
+
+        <td>
+
+     
+
+    <center>
+
+            <table style="width:630px;">
+
+            <tbody><tr>
+
+                    <td align="left">
+
+                            <p class="header">Здравствуйте!</p>
+
+                            <p>DSdsadlasd;a;flja; as;das;dlka;lkdsl;s asdlad;laldsk;aВаш аккаунт в «ТаймВэб» подготовлен к работе.</p>
+
+     
+
+                            <p>Логин и пароль для входа в панель управления отправлены на электронную почту, которую вы указали при регистрации.</p>
+
+                            <p>Эта страница создана автоматически вместе с аккаунтом, ваш сайт станет доступен после загрузки файлов на сервер.</p>
+
+                        <p>Подробно о том, как разместить сайт, в нашем <a href="http://timeweb.com/ru/help/pages/viewpage.action?pageId=6226259&amp;utm_source=tmweb&amp;utm_medium=referral&amp;utm_campaign=help" target="_blank">справочном центре</a>.</p>
+
+                        <p>Если у вашего сайта пока что нет имени, <a href="http://hosting.timeweb.ru/domains/registration" target="_blank">зарегистрируйте</a> его. Если домен уже есть, <a href="http://timeweb.com/ru/help/pages/viewpage.action?pageId=4358494&utm_source=tmweb&utm_medium=referral&utm_campaign=help" target="_blank">перенесите</a> к нам.</p>
+
+                            
+
+                            <p class="header">Если вы видите эту страницу после размещения файлов на нашем хостинге, попробуйте:</p>
+
+                    
+
+            
+
+                            <ul>
+
+                                    <li> обновить страницу сочетанием клавиш
+
+                                Ctrl+F5 для Windows
+
+                                Shift+F5 для Linux
+
+                                Cmd+F5 для macOS
+
+                                    </li><li> проверить в разделе «Сайты», к верной ли папке привязан домен</li>
+
+                                    </li><li> удалить файл index.htm из директории сайта в файловом менеджере
+
+                            </li></ul>
+
+                            <p> Обращайтесь к нам по интересующим вопросам: через <a href="http://hosting.timeweb.ru/tickets" target="_blank">панель управления</a>, онлайн-чат, по телефону 8 (800) 333-1081 или e-mail info@timeweb.ru</p>
+
+                            <p> Мы желаем вам успешной работы. Спасибо, что выбрали «ТаймВэб».</p>
+
+                            
+
+                            <p class="header">Дополнительно:</p>
+
+                                    <p>
+
+                                    <a href="http://timeweb.com/ru/help/pages/viewpage.action?pageId=6226259&amp;utm_source=tmweb&amp;utm_medium=referral&amp;utm_campaign=help" target="_blank" alt="Справочный центр">Справочный центр</a>&nbsp;&nbsp;
+
+                                    <a href="https://timeweb.com/ru/services/compare/?utm_source=tmweb&amp;utm_medium=referral&amp;utm_campaign=compare" target="_blank" alt="Сравнить хостинг Timeweb">Услуги</a>&nbsp;&nbsp;
+
+                                    <a href="https://timeweb.com/ru/?utm_source=tmweb&amp;utm_medium=referral&amp;utm_campaign=pay#pay" target="_blank" alt="Оплата хостинга Timeweb">Способы оплаты</a>&nbsp;&nbsp;
+
+                                    <a href="https://timeweb.com/ru/services/bonuses/2018/2606/?utm_source=tmweb&amp;utm_medium=referral&amp;utm_campaign=bonuses" target="_blank" alt="Акции и скидки на хостинг Timeweb">Акции и скидки</a>&nbsp;&nbsp;
+
+                                    <a href="https://timeweb.com/ru/about/contacts/?utm_source=tmweb&amp;utm_medium=referral&amp;utm_campaign=contacts" target="_blank" alt="Поддержка хостинга Timeweb">Поддержка</a>
+
+                            </p><p class="line"></p>
+
+     
+
+                            <p class="sign">Тел./Факс:
+
+    7 495 604-1081 (Москва) ::
+
+    7 812 244-1081 (С.-Петербург) ::
+
+    8 800 333-1081 (Россия)
+
+      ©2006-2019, ООО "ТаймВэб"<br>
+
+                            Санкт-Петербург, ул. Заставская, д. 22, к. 2, лит. А, 8 этаж<br>
+
+                            Лицензия РОСКОМНАДЗОР N142739.</p>
+
+                    </td>
+
+            </tr>
+
+            </tbody></table>
+
+     
+
+    </center>
+
+     
+
+            </td>
+
+    </tr>
+
+    </tbody></table>
+
+    </center>
+
+    
+
+    
+
+</body></html>
